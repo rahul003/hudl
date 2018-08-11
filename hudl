@@ -1,0 +1,146 @@
+#!/bin/bash
+# HUDL
+# -------------
+# Robust utlity to
+# - Execute commands in a cluster of machines
+# - Execute commands in the background
+# - Copy files/folders to all machines
+#
+# Options
+# -------------
+# -h ARGUMENT : Takes hosts file with the following format
+# A host file would have list of ip_address or ip_address with slots keyword
+# such as `172.16.12.12 slots=8
+#      172.16.12.13`
+#
+# -t : Runs command in background in a detached tmux session so you can execute in parallel over many machines
+# The tmux session automatically ends after the command exits
+#
+# -l : Only used along with -t option. Logs the output of that tmux session 
+# in a file with name `run_20180811_005726Z` 
+# where the second part is the timestamp of when the command was run
+#
+# -v : Verbose mode, prints the IP of each node on which a command will be executed
+#
+# -c ARGUMENT : Source path of file/folder to be copied
+# 
+# -d ARGUMENT : Destination path of file/folder to be copied. 
+# Defaults to empty (i.e. home folder of destination host)
+#
+# Examples
+# -------------
+# hudl -h test-hosts -v touch test
+# hudl -h test-hosts -v -c hello/ -d rahul/
+# hudl -v -h test-hosts -c efs/data/caltech-256/256_ObjectCategories.tar
+# hudl -h test-hosts -v -t pip3 install tensorflow
+# hudl -h test-hosts -v -t -l pip3 install tensorflow
+
+usage() {
+  echo "Hudl - A bash utility to execute commands on a huddle of machines
+Usage: 
+  -h hostsfile 
+     default=hosts
+  -t tmux mode
+  -l log mode
+  -v verbose mode
+  -c copy source path
+  -d copy destination path"
+}
+
+error() {
+  echo "Run '"hudl"' to see instructions on how to use this usage of this tool"
+}
+
+hudl() {
+  tmux_mode=false
+  log_mode=false
+  log_dir='tmux_run_logs/'
+  verbose_mode=false
+  hosts_file="hosts"
+  dest_path=""
+  copy_path=""
+  local OPTIND o t h c l v d
+  while getopts "th:c:lvd:" o; do
+    case "${o}" in
+      t)
+        tmux_mode=true
+        ;;
+      h)
+        hosts_file=$OPTARG
+        ;;
+      c)
+        copy_path=$OPTARG
+        ;;
+      d)
+        dest_path=$OPTARG
+        ;;
+      l)
+        log_mode=true
+        ;;
+      v)
+        verbose_mode=true
+        ;;
+      \?)
+        error
+        return 1
+        ;;
+    esac
+  done
+  shift $(($OPTIND - 1))
+  command=$@
+
+  if [ -z "$command" ]
+  then
+    usage
+    return 0
+  fi
+
+
+  finalcommand=""
+
+  if [ $log_mode == true ] && [ $tmux_mode == false ]
+  then
+    echo "-l option only used with -t. Ignoring logging request"
+  fi
+
+  if [ -z "$copy_path" ]
+  then 
+    if [ $tmux_mode == true ]
+    then
+      if [ $log_mode == true ]
+      then
+        LOG_FILE=$log_dir`date +%Y%m%d_%H%M%SZ`
+        LOG_FILE+='.log'
+        finalcommand+="tmux new-session -d \"$command |& tee -a $LOG_FILE\""
+      else
+        finalcommand+="tmux new-session -d \"$command\""
+      fi
+    else
+      finalcommand+=$command
+    fi
+
+    while read -u 10 host; 
+    do
+      if [ $verbose_mode == true ]
+      then
+        echo 'Running on '$host
+      fi
+      if [ $tmux_mode == true ] && [ $log_mode == true ]
+      then
+        ssh -o "StrictHostKeyChecking no" $host "mkdir -p $log_dir" ;
+      fi
+      ssh -o "StrictHostKeyChecking no" $host $finalcommand ;
+    done 10<$hosts_file;
+  else
+    while read -u 10 host; 
+    do
+      host=${host%% slots*}
+      echo $host
+      if [ $verbose_mode == true ]
+      then
+        echo 'Copying' $copy_path 'to '$host':'$dest_path
+      fi
+      scp -o "StrictHostKeyChecking no" -r $copy_path $host:$dest_path ; 
+    done 10<$hosts_file
+  fi
+}
