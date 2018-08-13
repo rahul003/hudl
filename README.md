@@ -1,5 +1,5 @@
 # HUDL
-Robust utlity to
+A bash utlity to
 - Execute commands in a cluster of machines
 - Execute commands in the background
 - Copy files/folders to all machines
@@ -7,8 +7,11 @@ Robust utlity to
 ## Options
 `-h ARGUMENT` : Takes hosts file with the following format
 A host file would have list of ip_address or ip_address with slots keyword
-such as ```172.16.12.12 slots=8
-     172.16.12.13```
+such as 
+```
+172.16.12.12 slots=8
+172.16.12.13
+```
 
 `-t` : Runs command in background in a detached tmux session so you can execute in parallel over many machines
 The tmux session automatically ends after the command exits
