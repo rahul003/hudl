@@ -42,14 +42,13 @@ Here's a one liner to install `hudl` into /usr/local/bin, so you can just execut
 sudo sh -c "curl https://raw.githubusercontent.com/rahul003/hudl/master/hudl -o /usr/local/bin/hudl && chmod +x /usr/local/bin/hudl"
 ```
 ## Examples
-
-* Running a command on all machines in the background
-```
-hudl -t pip3 install tensorflow 
-```
 * Running a command on all machines sequentially and see the output on screen
 ```
 hudl nvidia-smi
+```
+* Running a command on all machines in the background
+```
+hudl -t pip3 install tensorflow 
 ```
 * Copying a folder to all machines and in verbose mode
 ```
