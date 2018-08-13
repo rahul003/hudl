@@ -35,11 +35,10 @@ Here's a one liner to get you started
 sudo sh -c "curl https://gist.githubusercontent.com/rahul003/6922d91743ee96eefbeb1025ac1d1141/raw/899ff6156de3dba0c47c7b4fd91e6639610759d7/run_clust.sh -o /usr/local/bin/hudl && chmod +x /usr/local/bin/hudl"
 ```
 ## Examples
-* hudl -h test-hosts -v touch test
-* hudl -h test-hosts -v -c hello/ -d rahul/
-* hudl -v -h test-hosts -c efs/data/caltech-256/256_ObjectCategories.tar
-* hudl -h test-hosts -v -t pip3 install tensorflow
-* hudl -h test-hosts -v -t -l pip3 install tensorflow
 
-## Why Hudl?
-Hudl is a reference to Huddles by a sports team where the coach instructs the team what to do, in this case for all nodes to perform a task
+* Copying file to a folder `hudl -v -h hosts -c efs/data/caltech-256/256_ObjectCategories.tar -d data/`
+* Running a command in the background and logging the execution of the command `hudl -h hosts -v -t -l pip3 install tensorflow`
+* Running a command silently in the background `hudl -h hosts -t pip3 install tensorflow`
+
+## Why the name Hudl?
+Hudl is a reference to a Huddle by a sports team where the coach instructs the team what to do, in this case for all nodes to perform a task
