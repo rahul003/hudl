@@ -1,5 +1,5 @@
 # HUDL
-A bash utlity to
+Hudl is a bash utlity to help manage your cluster of machines over ssh. It can currently
 - Execute commands in a cluster of machines
 - Execute commands in the background
 - Copy files/folders to all machines
@@ -29,16 +29,25 @@ Defaults to empty (i.e. home folder of destination host)
 
 ## Installation
 
-Here's a one liner to get you started
+Here's a one liner to install `hudl` into /usr/local/bin, so you can just execute `hudl` by typing on your terminal
 
 ```
-sudo sh -c "curl https://gist.githubusercontent.com/rahul003/6922d91743ee96eefbeb1025ac1d1141/raw/899ff6156de3dba0c47c7b4fd91e6639610759d7/run_clust.sh -o /usr/local/bin/hudl && chmod +x /usr/local/bin/hudl"
+sudo sh -c "curl https://raw.githubusercontent.com/rahul003/hudl/master/hudl -o /usr/local/bin/hudl && chmod +x /usr/local/bin/hudl"
 ```
 ## Examples
 
-* Copying file to a folder `hudl -v -h hosts -c efs/data/caltech-256/256_ObjectCategories.tar -d data/`
-* Running a command in the background and logging the execution of the command `hudl -h hosts -v -t -l pip3 install tensorflow`
-* Running a command silently in the background `hudl -h hosts -t pip3 install tensorflow`
+* Copying file to a folder 
+```
+hudl -v -h hosts -c efs/data/caltech-256/256_ObjectCategories.tar -d data/
+```
+* Running a command in the background and logging the execution of the command 
+```
+hudl -h hosts -v -t -l pip3 install tensorflow
+```
+* Running a command silently in the background 
+```
+hudl -h hosts -t pip3 install tensorflow
+```
 
 ## Why the name Hudl?
 Hudl is a reference to a Huddle by a sports team where the coach instructs the team what to do, in this case for all nodes to perform a task
