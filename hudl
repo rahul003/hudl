@@ -1,40 +1,5 @@
 #!/bin/bash
-# HUDL
-# -------------
-# Robust utlity to
-# - Execute commands in a cluster of machines
-# - Execute commands in the background
-# - Copy files/folders to all machines
-#
-# Options
-# -------------
-# -h ARGUMENT : Takes hosts file with the following format
-# A host file would have list of ip_address or ip_address with slots keyword
-# such as `172.16.12.12 slots=8
-#      172.16.12.13`
-#
-# -t : Runs command in background in a detached tmux session so you can execute in parallel over many machines
-# The tmux session automatically ends after the command exits
-#
-# -l : Only used along with -t option. Logs the output of that tmux session 
-# in a file with name `run_20180811_005726Z` 
-# where the second part is the timestamp of when the command was run
-#
-# -v : Verbose mode, prints the IP of each node on which a command will be executed
-#
-# -c ARGUMENT : Source path of file/folder to be copied
-# 
-# -d ARGUMENT : Destination path of file/folder to be copied. 
-# Defaults to empty (i.e. home folder of destination host)
-#
-# Examples
-# -------------
-# hudl -h test-hosts -v touch test
-# hudl -h test-hosts -v -c hello/ -d rahul/
-# hudl -v -h test-hosts -c efs/data/caltech-256/256_ObjectCategories.tar
-# hudl -h test-hosts -v -t pip3 install tensorflow
-# hudl -h test-hosts -v -t -l pip3 install tensorflow
-
+# Refer https://github.com/rahul003/hudl/blob/master/README.md for detailed usage instructions
 usage() {
   echo "Hudl - A bash utility to execute commands on a huddle of machines
 Usage: 
@@ -54,13 +19,12 @@ error() {
 hudl() {
   tmux_mode=false
   log_mode=false
-  log_dir='tmux_run_logs/'
+  log_dir='hudl/tmux_logs/'
   verbose_mode=false
   hosts_file="hosts"
   dest_path=""
-  copy_path=""
-  local OPTIND o t h c l v d
-  while getopts "th:c:lvd:" o; do
+  local OPTIND o t h c l v d s
+  while getopts "th:c:lvd:s:" o; do
     case "${o}" in
       t)
         tmux_mode=true
@@ -80,6 +44,9 @@ hudl() {
       v)
         verbose_mode=true
         ;;
+      s)
+        script_path=$OPTARG
+        ;;
       \?)
         error
         return 1
@@ -89,22 +56,53 @@ hudl() {
   shift $(($OPTIND - 1))
   command=$@
 
-  if [ -z "$command" ]
+  # if not running script mode, command needs to be set
+  if [ -z "$command" ] && [ -z "$script_path" ]
   then
     usage
     return 0
   fi
-
-
-  finalcommand=""
-
   if [ $log_mode == true ] && [ $tmux_mode == false ]
   then
     echo "-l option only used with -t. Ignoring logging request"
   fi
 
-  if [ -z "$copy_path" ]
+  finalcommand=""
+  if [ -n "$copy_path" ] || [ -n "$script_path" ]
   then 
+    if [ -n "$script_path" ]
+    then
+      copy_path=$script_path
+      if [ -z "$dest_path" ]
+      then
+        dest_path='hudl/scripts/'
+      fi
+      dest_path=${dest_path}/
+    fi
+
+
+    while read -u 10 host; 
+    do
+      host=${host%% slots*}
+      if [ $verbose_mode == true ]
+      then
+        echo 'Copying' $copy_path 'to '$host':'$dest_path
+      fi
+      ssh -o "StrictHostKeyChecking no" $host "mkdir -p $dest_path" ;
+      scp -o "StrictHostKeyChecking no" -r $copy_path $host:$dest_path ;
+      if [ -n "$script_path" ] && [ -z "$command" ]
+      then
+        command="bash ${dest_path}$(basename $script_path)"
+      fi
+    done 10<$hosts_file
+    if [ -n "$script_path" ]
+    then
+      unset copy_path
+    fi
+  fi
+
+  if [ -n "$script_path" ] || [ -z "$copy_path" ]
+  then
     if [ $tmux_mode == true ]
     then
       if [ $log_mode == true ]
@@ -118,12 +116,12 @@ hudl() {
     else
       finalcommand+=$command
     fi
-
     while read -u 10 host; 
     do
+      host=${host%% slots*}
       if [ $verbose_mode == true ]
       then
-        echo 'Running on '$host
+        echo "Running on ${host}:${finalcommand}"
       fi
       if [ $tmux_mode == true ] && [ $log_mode == true ]
       then
@@ -131,16 +129,7 @@ hudl() {
       fi
       ssh -o "StrictHostKeyChecking no" $host $finalcommand ;
     done 10<$hosts_file;
-  else
-    while read -u 10 host; 
-    do
-      host=${host%% slots*}
-      echo $host
-      if [ $verbose_mode == true ]
-      then
-        echo 'Copying' $copy_path 'to '$host':'$dest_path
-      fi
-      scp -o "StrictHostKeyChecking no" -r $copy_path $host:$dest_path ; 
-    done 10<$hosts_file
   fi
 }
+
+hudl $@
