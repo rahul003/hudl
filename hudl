@@ -9,7 +9,9 @@ Usage:
   -l log mode
   -v verbose mode
   -c copy source path
-  -d copy destination path"
+  -d copy destination path
+  -s script path
+  Refer https://github.com/rahul003/hudl/blob/master/README.md for detailed usage instructions"
 }
 
 error() {
@@ -90,9 +92,9 @@ hudl() {
       fi
       ssh -o "StrictHostKeyChecking no" $host "mkdir -p $dest_path" ;
       scp -o "StrictHostKeyChecking no" -r $copy_path $host:$dest_path ;
-      if [ -n "$script_path" ] && [ -z "$command" ]
+      if [ -n "$script_path" ]
       then
-        command="bash ${dest_path}$(basename $script_path)"
+        command="bash ${dest_path}$(basename $script_path) ${command}"
       fi
     done 10<$hosts_file
     if [ -n "$script_path" ]

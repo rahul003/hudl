@@ -36,18 +36,41 @@ The command can also be controlled such as to specify arguments, just pass the c
 
 ## Installation
 
-Here's a one liner to get you started
+Here's a one liner to install `hudl` into /usr/local/bin, so you can just execute `hudl` by typing on your terminal
 
 ```
-sudo sh -c "curl https://gist.githubusercontent.com/rahul003/6922d91743ee96eefbeb1025ac1d1141/raw/899ff6156de3dba0c47c7b4fd91e6639610759d7/run_clust.sh -o /usr/local/bin/hudl && chmod +x /usr/local/bin/hudl"
+sudo sh -c "curl https://raw.githubusercontent.com/rahul003/hudl/master/hudl -o /usr/local/bin/hudl && chmod +x /usr/local/bin/hudl"
 ```
 ## Examples
 
-* hudl -h test-hosts -v touch test
-* hudl -h test-hosts -v -c hello/ -d rahul/
-* hudl -v -h test-hosts -c efs/data/caltech-256/256_ObjectCategories.tar
-* hudl -h test-hosts -v -t pip3 install tensorflow
-* hudl -h test-hosts -v -t -l pip3 install tensorflow
+* Running a command on all machines in the background
+```
+hudl -t pip3 install tensorflow 
+```
+* Running a command on all machines sequentially and see the output on screen
+```
+hudl nvidia-smi
+```
+* Copying a folder to all machines and in verbose mode
+```
+hudl -v -c efs/data/caltech-256/256_ObjectCategories.tar -d data/
+```
+* Running a command in the background and logging the execution of the command 
+```
+hudl -vtl pip3 install tensorflow
+```
+* Copying a local script to all machines and executing it
+```
+hudl -s setup.sh
+```
+* Copying a local script to all machines in a specific folder and executing it by passing some arguments (`/usr/bin/` in this case)
+```
+hudl -s setup.sh -d installation-scripts/ /usr/bin/
+```
+* Specifying hosts from a different file for the command
+```
+hudl -h server-hosts ps aux | grep python
+```
 
-## Why Hudl?
-Hudl is a reference to Huddles by a sports team where the coach instructs the team what to do, in this case for all nodes to perform a task
+## Why the name Hudl?
+Hudl is a reference to a Huddle by a sports team where the coach instructs the team what to do, in this case for all nodes to perform a specified task 
