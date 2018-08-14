@@ -5,6 +5,7 @@ usage() {
 Usage: 
   -h hostsfile 
      default=hosts
+  -n number of hosts to read from hostsfile
   -t tmux mode
   -l log mode
   -v verbose mode
@@ -25,8 +26,8 @@ hudl() {
   verbose_mode=false
   hosts_file="hosts"
   dest_path=""
-  local OPTIND o t h c l v d s
-  while getopts "th:c:lvd:s:" o; do
+  local OPTIND o t h c l v d s n
+  while getopts "th:c:lvd:s:n:" o; do
     case "${o}" in
       t)
         tmux_mode=true
@@ -48,6 +49,9 @@ hudl() {
         ;;
       s)
         script_path=$OPTARG
+        ;;
+      n)
+        num_hosts=$OPTARG
         ;;
       \?)
         error
@@ -83,10 +87,15 @@ hudl() {
       dest_path=${dest_path}/
     fi
 
-
-    while read -u 10 host; 
+    count=0
+    while read -u 10 host;
     do
       host=${host%% slots*}
+      if [[ -n "$num_hosts" && $count -ge $num_hosts ]]
+      then
+        break
+      fi
+
       if [ $verbose_mode == true ]
       then
         echo 'Copying' $copy_path 'to '$host':'$dest_path
@@ -101,6 +110,7 @@ hudl() {
       then
         command="bash ${dest_path}$(basename $script_path) ${command}"
       fi
+      let "count+=1"
     done 10<$hosts_file
     if [ -n "$script_path" ]
     then
@@ -123,9 +133,14 @@ hudl() {
     else
       finalcommand+=$command
     fi
-    while read -u 10 host; 
+    count=0
+    while read -u 10 host;
     do
       host=${host%% slots*}
+      if [[ -n "$num_hosts" && $count -ge $num_hosts ]]
+      then
+        break
+      fi
       if [ $verbose_mode == true ]
       then
         echo "Running on ${host}:${finalcommand}"
@@ -135,6 +150,7 @@ hudl() {
         ssh -o "StrictHostKeyChecking no" $host "mkdir -p $log_dir" ;
       fi
       ssh -o "StrictHostKeyChecking no" $host $finalcommand ;
+      let "count+=1"
     done 10<$hosts_file;
   fi
 }

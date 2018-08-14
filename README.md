@@ -14,6 +14,8 @@ A host file would have list of ip_address. An address can also have the suffix `
 172.16.12.13
 ```
 
+`-n ARGUMENT`: Number of hosts to read from host file. Picks the first `n` hosts
+
 `-t` : Runs command in background in a detached tmux session so you can execute in parallel over many machines
 The tmux session automatically ends after the command exits
 
@@ -69,6 +71,10 @@ hudl -s setup.sh -d installation-scripts/ /usr/bin/
 * Specifying hosts from a different file for the command
 ```
 hudl -h server-hosts ps aux | grep python
+```
+* Running a sequence of commands by enclosing them within quotes, and choosing to use only the first `n` hosts from the hostfile
+```
+hudl -n 2 "start.sh && ps aux | grep python"
 ```
 
 ## Why the name Hudl?
