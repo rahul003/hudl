@@ -58,12 +58,13 @@ hudl() {
   shift $(($OPTIND - 1))
   command=$@
 
-  # if not running script mode, command needs to be set
-  if [ -z "$command" ] && [ -z "$script_path" ]
+  # if not running script mode or copy mode, command needs to be set
+  if [ -z "$command" ] && [ -z "$script_path" ] && [ -z "$copy_path"]
   then
     usage
     return 0
   fi
+
   if [ $log_mode == true ] && [ $tmux_mode == false ]
   then
     echo "-l option only used with -t. Ignoring logging request"
