@@ -59,7 +59,7 @@ hudl() {
   command=$@
 
   # if not running script mode or copy mode, command needs to be set
-  if [ -z "$command" ] && [ -z "$script_path" ] && [ -z "$copy_path"]
+  if [ -z "$command" ] && [ -z "$script_path" ] && [ -z "$copy_path" ]
   then
     usage
     return 0
