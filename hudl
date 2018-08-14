@@ -91,7 +91,11 @@ hudl() {
       then
         echo 'Copying' $copy_path 'to '$host':'$dest_path
       fi
-      ssh -o "StrictHostKeyChecking no" $host "mkdir -p $dest_path" ;
+      if [ -n "$dest_path" ]
+      then
+        ssh -o "StrictHostKeyChecking no" $host "mkdir -p $dest_path" ;
+      fi
+      
       scp -o "StrictHostKeyChecking no" -r $copy_path $host:$dest_path ;
       if [ -n "$script_path" ]
       then
