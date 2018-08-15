@@ -78,6 +78,10 @@ hudl -h server-hosts ps aux | grep python
 ```
 hudl -n 2 "start.sh && ps aux | grep python"
 ```
+* Copying in the background while logging
+```
+hudl -tvlc source/ -d destination/
+```
 
 ## Why the name Hudl?
 Hudl is a reference to a Huddle by a sports team where the coach instructs the team what to do, in this case for all nodes to perform a specified task 
