@@ -6,6 +6,7 @@ Usage:
   -h hostsfile 
      default=hosts
   -n number of hosts to read from hostsfile
+  -i identityfile for ssh
   -t tmux mode
   -l log mode
   -v verbose mode
@@ -19,15 +20,39 @@ error() {
   echo "Run '"hudl"' to see instructions on how to use this usage of this tool"
 }
 
-hudl() {
+# adds tmux prefix if required
+prepare_final_command() {
+  # tmux_mode=$1
+  # log_mode=$2
+  # log_dir=$3
+  command=$1
+  finalcommand=""
+
+  if [ $tmux_mode == true ]
+  then
+    if [ $log_mode == true ]
+    then
+      command="mkdir -p $log_dir && $command"
+      LOG_FILE=$log_dir`date +%Y%m%d_%H%M%SZ`
+      LOG_FILE+='.log'
+      finalcommand+="tmux new-session -d \"$command 2>&1 | tee -a $LOG_FILE\""
+    else
+      finalcommand+="tmux new-session -d \"$command\""
+    fi
+  else
+    finalcommand=$command
+  fi
+}
+
+parse_arguments() {
   tmux_mode=false
   log_mode=false
-  log_dir='hudl/tmux_logs/'
+  log_dir='~/hudl/tmux_logs/'
   verbose_mode=false
   hosts_file="hosts"
   dest_path=""
-  local OPTIND o t h c l v d s n
-  while getopts "th:c:lvd:s:n:" o; do
+  local OPTIND o t h c l v d s n i
+  while getopts "th:c:lvd:s:n:i:" o; do
     case "${o}" in
       t)
         tmux_mode=true
@@ -53,6 +78,9 @@ hudl() {
       n)
         num_hosts=$OPTARG
         ;;
+      i)
+        identityfile=$OPTARG
+        ;;
       \?)
         error
         return 1
@@ -61,6 +89,11 @@ hudl() {
   done
   shift $(($OPTIND - 1))
   command=$@
+
+}
+
+hudl() {
+  parse_arguments $@
 
   # if not running script mode or copy mode, command needs to be set
   if [ -z "$command" ] && [ -z "$script_path" ] && [ -z "$copy_path" ]
@@ -74,7 +107,6 @@ hudl() {
     echo "-l option only used with -t. Ignoring logging request"
   fi
 
-  finalcommand=""
   if [ -n "$copy_path" ] || [ -n "$script_path" ]
   then 
     if [ -n "$script_path" ]
@@ -82,7 +114,7 @@ hudl() {
       copy_path=$script_path
       if [ -z "$dest_path" ]
       then
-        dest_path='hudl/scripts/'
+        dest_path='~/hudl/scripts/'
       fi
       dest_path=${dest_path}/
     fi
@@ -96,16 +128,21 @@ hudl() {
         break
       fi
 
-      if [ $verbose_mode == true ]
-      then
-        echo 'Copying' $copy_path 'to '$host':'$dest_path
-      fi
+      copy_command=""
       if [ -n "$dest_path" ]
       then
-        ssh -o "StrictHostKeyChecking no" $host "mkdir -p $dest_path" ;
+        copy_command+='ssh -o "StrictHostKeyChecking no" '"$host"' "mkdir -p '"$dest_path"' && ';
       fi
-      
-      scp -o "StrictHostKeyChecking no" -r $copy_path $host:$dest_path ;
+      copy_command+='scp -o "StrictHostKeyChecking no" -r '"$copy_path"' '"$host"':'"$dest_path"'';
+      echo $copy_command
+      prepare_final_command "$copy_command"
+      if [ $verbose_mode == true ]
+      then
+        echo -e 'Copying to '$host'\n'$finalcommand
+      fi
+
+      eval $finalcommand
+
       if [ -n "$script_path" ]
       then
         command="bash ${dest_path}$(basename $script_path) ${command}"
@@ -120,19 +157,9 @@ hudl() {
 
   if [ -n "$script_path" ] || [ -z "$copy_path" ]
   then
-    if [ $tmux_mode == true ]
-    then
-      if [ $log_mode == true ]
-      then
-        LOG_FILE=$log_dir`date +%Y%m%d_%H%M%SZ`
-        LOG_FILE+='.log'
-        finalcommand+="tmux new-session -d \"$command |& tee -a $LOG_FILE\""
-      else
-        finalcommand+="tmux new-session -d \"$command\""
-      fi
-    else
-      finalcommand+=$command
-    fi
+    
+    prepare_final_command $tmux_mode $log_mode $log_dir $command
+
     count=0
     while read -u 10 host;
     do
@@ -143,11 +170,7 @@ hudl() {
       fi
       if [ $verbose_mode == true ]
       then
-        echo "Running on ${host}:${finalcommand}"
-      fi
-      if [ $tmux_mode == true ] && [ $log_mode == true ]
-      then
-        ssh -o "StrictHostKeyChecking no" $host "mkdir -p $log_dir" ;
+        echo -e "Running on ${host}:\n${finalcommand}"
       fi
       ssh -o "StrictHostKeyChecking no" $host $finalcommand ;
       let "count+=1"
