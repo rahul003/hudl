@@ -10,6 +10,7 @@ Usage:
   -t tmux mode
   -l log mode
   -v verbose mode
+  -q run rsync in quiet mode for copying
   -c copy source path
   -d copy destination path
   -s script path
@@ -22,37 +23,34 @@ error() {
 
 # adds tmux prefix if required
 prepare_final_command() {
-  # tmux_mode=$1
-  # log_mode=$2
-  # log_dir=$3
-  command=$1
+  command_arg=$1
   finalcommand=""
-
   if [ $tmux_mode == true ]
   then
     if [ $log_mode == true ]
     then
-      command="mkdir -p $log_dir && $command"
+      finalcommand="mkdir -p $log_dir && "
       LOG_FILE=$log_dir`date +%Y%m%d_%H%M%SZ`
       LOG_FILE+='.log'
-      finalcommand+="tmux new-session -d \"$command 2>&1 | tee -a $LOG_FILE\""
+      finalcommand+="tmux new-session -d \"$command_arg 2>&1 | tee -a $LOG_FILE\""
     else
-      finalcommand+="tmux new-session -d \"$command\""
+      finalcommand+="tmux new-session -d \"$command_arg\""
     fi
   else
-    finalcommand=$command
+    finalcommand=$command_arg
   fi
 }
 
 parse_arguments() {
   tmux_mode=false
   log_mode=false
+  quiet_mode=false
   log_dir='~/hudl/tmux_logs/'
   verbose_mode=false
   hosts_file="hosts"
   dest_path=""
-  local OPTIND o t h c l v d s n i
-  while getopts "th:c:lvd:s:n:i:" o; do
+  local OPTIND o t h c l v d s n i q
+  while getopts "th:c:lvqd:s:n:i:" o; do
     case "${o}" in
       t)
         tmux_mode=true
@@ -80,6 +78,9 @@ parse_arguments() {
         ;;
       i)
         identityfile=$OPTARG
+        ;;
+      q)
+        quiet_mode=true
         ;;
       \?)
         error
@@ -115,8 +116,9 @@ hudl() {
       if [ -z "$dest_path" ]
       then
         dest_path='~/hudl/scripts/'
+      else
+        dest_path=${dest_path}/
       fi
-      dest_path=${dest_path}/
     fi
 
     count=0
@@ -128,27 +130,28 @@ hudl() {
         break
       fi
 
-      copy_command=""
-      if [ -n "$dest_path" ]
+      rsync_options="-az"
+      if [[ $verbose_mode == true ]]
       then
-        copy_command+='ssh -o "StrictHostKeyChecking no" '"$host"' "mkdir -p '"$dest_path"' && ';
+        rsync_options+=" -v"
       fi
-      copy_command+='scp -o "StrictHostKeyChecking no" -r '"$copy_path"' '"$host"':'"$dest_path"'';
-      echo $copy_command
+      if [[ $quiet_mode == true ]]
+      then
+        rsync_options+=" -q"
+      fi
+      copy_command='rsync '"$rsync_options"' '"$copy_path"' '"$host"':'"$dest_path"''
       prepare_final_command "$copy_command"
       if [ $verbose_mode == true ]
       then
         echo -e 'Copying to '$host'\n'$finalcommand
       fi
-
       eval $finalcommand
-
-      if [ -n "$script_path" ]
-      then
-        command="bash ${dest_path}$(basename $script_path) ${command}"
-      fi
       let "count+=1"
     done 10<$hosts_file
+    if [ -n "$script_path" ]
+    then
+      command="bash ${dest_path}$(basename $script_path) ${command}"
+    fi
     if [ -n "$script_path" ]
     then
       unset copy_path
@@ -157,8 +160,7 @@ hudl() {
 
   if [ -n "$script_path" ] || [ -z "$copy_path" ]
   then
-    
-    prepare_final_command $tmux_mode $log_mode $log_dir $command
+    prepare_final_command "$command"
 
     count=0
     while read -u 10 host;

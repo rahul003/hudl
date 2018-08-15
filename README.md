@@ -3,7 +3,7 @@ A simple bash utlity to help ease the task of managing a cluster of machines.
 It supports
 - Executing commands on a cluster of machines
 - Executing commands in the background
-- Copying files/folders to all machines
+- Copying files/folders to all machines using rsync
 - Executing a script on a cluster of machines (copy + execute)
 
 ## Options
@@ -23,7 +23,7 @@ The tmux session automatically ends after the command exits
 in a file with name `run_20180811_005726Z` in the folder `~/hudl/tmux_logs/`
 where the second part is the timestamp of when the command was run
 
-`-c ARGUMENT` : Source path of file/folder to be copied
+`-c ARGUMENT` : Source path of file/folder to be copied. Uses rsync for copying incrementally
 
 `-d ARGUMENT` : Destination path of file/folder to be copied. 
 Defaults to empty (i.e. home folder of destination host) when copying files. 
@@ -35,6 +35,8 @@ You can control destination path where script will be coped using `-d` argument,
 The command can also be controlled such as to specify arguments, just pass the command after all named options.
 
 `-v` : Verbose mode, prints the IP of each node on which a command will be executed along with the commands to be executed
+
+`-q`: Quiet mode for rsync. Suppress non error messages from rsync when using verbose mode. When not in verbose mode, this has no effect.
 
 ## Installation
 
@@ -58,15 +60,15 @@ hudl -v -c efs/data/caltech-256/256_ObjectCategories.tar -d data/
 ```
 * Running a command in the background and logging the execution of the command 
 ```
-hudl -vtl pip3 install tensorflow
+hudl -vtl pip3 install mxnet
 ```
 * Copying a local script to all machines and executing it
 ```
 hudl -s setup.sh
 ```
-* Copying a local script to all machines in a specific folder and executing it by passing some arguments (`/usr/bin/` in this case)
+* Copying a local script to all machines in a specific folder and executing it by passing some arguments (`arg1 arg2` in this case)
 ```
-hudl -s setup.sh -d installation-scripts/ /usr/bin/
+hudl -d installation-scripts/ -s setup.sh arg1 arg2
 ```
 * Specifying hosts from a different file for the command
 ```
