@@ -9,6 +9,7 @@ Usage:
   -i identityfile for ssh
   -t tmux mode
   -l log mode
+  -p log prefix
   -v verbose mode
   -q run rsync in quiet mode for copying
   -c copy source path
@@ -30,7 +31,7 @@ prepare_final_command() {
     if [ $log_mode == true ]
     then
       finalcommand="mkdir -p $log_dir && "
-      LOG_FILE=$log_dir`date +%Y%m%d_%H%M%SZ`
+      LOG_FILE=$log_dir$log_prefix`date +%Y%m%d_%H%M%SZ`
       LOG_FILE+='.log'
       finalcommand+="tmux new-session -d \"$command_arg 2>&1 | tee -a $LOG_FILE\""
     else
@@ -48,9 +49,10 @@ parse_arguments() {
   log_dir='~/hudl/tmux_logs/'
   verbose_mode=false
   hosts_file="hosts"
+  log_prefix=""
   dest_path=""
-  local OPTIND o t h c l v d s n i q
-  while getopts "th:c:lvqd:s:n:i:" o; do
+  local OPTIND o t h c l v d s n i q p
+  while getopts "th:c:lvqd:s:n:i:p:" o; do
     case "${o}" in
       t)
         tmux_mode=true
@@ -82,6 +84,9 @@ parse_arguments() {
       q)
         quiet_mode=true
         ;;
+      p)
+	log_prefix=$OPTARG
+	;;
       \?)
         error
         return 1
