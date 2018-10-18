@@ -12,9 +12,10 @@ Usage:
   -p log prefix
   -v verbose mode
   -q run rsync in quiet mode for copying
-  -c copy source path
-  -d copy destination path
+  -c copy source path (ignores command given)
+  -d copy destination path 
   -s script path
+  -e echo most recent tmux log (ignores command given if any in this case)
   Refer https://github.com/rahul003/hudl/blob/master/README.md for detailed usage instructions"
 }
 
@@ -26,7 +27,10 @@ error() {
 prepare_final_command() {
   command_arg=$1
   finalcommand=""
-  if [ $tmux_mode == true ]
+  if [ $echo_recent_log == true ]
+  then
+    finalcommand="pushd ./; cd ~/hudl/tmux_logs/ ; cat \`ls -t | head -n 1\` ; popd"
+  elif [ $tmux_mode == true ]
   then
     if [ $log_mode == true ]
     then
@@ -51,8 +55,9 @@ parse_arguments() {
   hosts_file="hosts"
   log_prefix=""
   dest_path=""
-  local OPTIND o t h c l v d s n i q p
-  while getopts "th:c:lvqd:s:n:i:p:" o; do
+  echo_recent_log=false
+  local OPTIND o t h c l v d s n i q p e
+  while getopts "th:c:lvqd:s:n:i:p:e" o; do
     case "${o}" in
       t)
         tmux_mode=true
@@ -85,8 +90,11 @@ parse_arguments() {
         quiet_mode=true
         ;;
       p)
-	log_prefix=$OPTARG
-	;;
+	      log_prefix=$OPTARG
+	      ;;
+      e)
+        echo_recent_log=true
+        ;;
       \?)
         error
         return 1
@@ -95,14 +103,13 @@ parse_arguments() {
   done
   shift $(($OPTIND - 1))
   command=$@
-
 }
 
 hudl() {
   parse_arguments $@
 
   # if not running script mode or copy mode, command needs to be set
-  if [ -z "$command" ] && [ -z "$script_path" ] && [ -z "$copy_path" ]
+  if [ -z "$command" ] && [ -z "$script_path" ] && [ -z "$copy_path" ] && [ -z "$ccopy_path" ] && [ $echo_recent_log == false ]
   then
     usage
     return 0
