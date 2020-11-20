@@ -6,7 +6,6 @@ Usage:
   -h hostsfile 
      default=hosts
   -n number of hosts to read from hostsfile
-  -i identityfile for ssh
   -t tmux mode
   -l log mode
   -p log prefix
@@ -82,9 +81,6 @@ parse_arguments() {
         ;;
       n)
         num_hosts=$OPTARG
-        ;;
-      i)
-        identityfile=$OPTARG
         ;;
       q)
         quiet_mode=true
