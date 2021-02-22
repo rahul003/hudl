@@ -182,10 +182,12 @@ hudl() {
       then
         echo -e "Running on ${host}:\n${finalcommand}"
       fi
-      ssh -o "StrictHostKeyChecking no" $host $finalcommand ;
+      ssh -o "StrictHostKeyChecking no" $host $finalcommand &
       let "count+=1"
     done 10<$hosts_file;
   fi
+  wait
 }
 
 hudl $@
+
